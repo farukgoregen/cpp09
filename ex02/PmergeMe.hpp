@@ -22,20 +22,11 @@ private:
     std::vector<int> _vector;
     std::deque<int>  _deque;
 
-    // Ortodoks Form (Kullanılmayanları private'a hapsediyoruz)
     PmergeMe(const PmergeMe& src);
     PmergeMe& operator=(const PmergeMe& rhs);
-
-    // Girdi kontrolü
     bool isValidNumber(const std::string& str) const;
-
-    // Vector için Ford-Johnson Algoritması
     void sortVector(std::vector<int>& arr);
-    
-    // Deque için Ford-Johnson Algoritması
     void sortDeque(std::deque<int>& arr);
-
-    // Jacobsthal Serisi Üretici
     std::vector<size_t> generateJacobsthal(size_t size);
 
 

@@ -1,6 +1,8 @@
 #include "PmergeMe.hpp"
 #include <cstdlib>
 #include <iomanip>
+#include <algorithm>
+#include <sys/time.h>
 
 PmergeMe::PmergeMe() {}
 PmergeMe::~PmergeMe() {}
@@ -22,7 +24,6 @@ bool PmergeMe::isValidNumber(const std::string& str) const {
     return true;
 }
 
-// Jacobsthal sayılarını üreten matematiksel fonksiyonumuz
 std::vector<size_t> PmergeMe::generateJacobsthal(size_t size) {
     std::vector<size_t> jacob;
     if (size == 0) return jacob;
@@ -42,7 +43,6 @@ std::vector<size_t> PmergeMe::generateJacobsthal(size_t size) {
     return jacob;
 }
 
-// ---------------- VECTOR MOTORU (Ford-Johnson) ----------------
 void PmergeMe::sortVector(std::vector<int>& arr) {
     if (arr.size() < 2) return;
 
@@ -55,7 +55,6 @@ void PmergeMe::sortVector(std::vector<int>& arr) {
         arr.pop_back();
     }
 
-    // 1. ADIM: Çiftleri oluştur ve kendi içinde dövüştür (Büyük solda, Küçük sağda)
     for (size_t i = 0; i < arr.size(); i += 2) {
         int first = arr[i];
         int second = arr[i+1];
@@ -63,14 +62,12 @@ void PmergeMe::sortVector(std::vector<int>& arr) {
         pairs.push_back(std::make_pair(first, second));
     }
 
-    // 2. ADIM: Recursive (Özyineleme) ile büyükleri sırala
     std::vector<int> main_chain;
     for (size_t i = 0; i < pairs.size(); ++i) {
         main_chain.push_back(pairs[i].first);
     }
     sortVector(main_chain);
 
-    // 3. ADIM: Küçük sayıları kaybetme sırasına göre hizala
     std::vector<int> pend_chain;
     for (size_t i = 0; i < main_chain.size(); ++i) {
         for (size_t j = 0; j < pairs.size(); ++j) {
@@ -81,12 +78,10 @@ void PmergeMe::sortVector(std::vector<int>& arr) {
         }
     }
 
-    // İlk eleman hilesi: Kıyaslama yapmadan en başa at
     if (!pend_chain.empty()) {
         main_chain.insert(main_chain.begin(), pend_chain[0]);
     }
 
-    // 4. ADIM: Kalanları Jacobsthal sırasına göre Binary Search ile ekle
     std::vector<size_t> jacob = generateJacobsthal(pend_chain.size());
     size_t inserted_count = 1;
     
@@ -95,8 +90,23 @@ void PmergeMe::sortVector(std::vector<int>& arr) {
         if (index >= pend_chain.size()) index = pend_chain.size() - 1;
 
         while (index >= inserted_count) {
-            std::vector<int>::iterator pos = std::upper_bound(main_chain.begin(), main_chain.end(), pend_chain[index]);
-            main_chain.insert(pos, pend_chain[index]);
+            int target_pend = pend_chain[index];
+            int partner_main = -1;
+
+            for (size_t j = 0; j < pairs.size(); ++j) {
+                if (pairs[j].second == target_pend) {
+                    partner_main = pairs[j].first;
+                    break;
+                }
+            }
+
+            std::vector<int>::iterator limit = main_chain.end();
+            if (partner_main != -1) {
+                limit = std::find(main_chain.begin(), main_chain.end(), partner_main);
+            }
+            std::vector<int>::iterator pos = std::upper_bound(main_chain.begin(), limit, target_pend);
+            main_chain.insert(pos, target_pend);
+
             if (index == inserted_count) break;
             index--;
         }
@@ -111,8 +121,6 @@ void PmergeMe::sortVector(std::vector<int>& arr) {
     arr = main_chain;
 }
 
-// ---------------- DEQUE MOTORU (Ford-Johnson) ----------------
-// Algoritma mantığı birebir aynıdır, sadece std::deque tipi kullanılır
 void PmergeMe::sortDeque(std::deque<int>& arr) {
     if (arr.size() < 2) return;
 
@@ -160,8 +168,21 @@ void PmergeMe::sortDeque(std::deque<int>& arr) {
         if (index >= pend_chain.size()) index = pend_chain.size() - 1;
 
         while (index >= inserted_count) {
-            std::deque<int>::iterator pos = std::upper_bound(main_chain.begin(), main_chain.end(), pend_chain[index]);
-            main_chain.insert(pos, pend_chain[index]);
+            int target_pend = pend_chain[index];
+            int partner_main = -1;
+            for (size_t j = 0; j < pairs.size(); ++j) {
+                if (pairs[j].second == target_pend) {
+                    partner_main = pairs[j].first;
+                    break;
+                }
+            }
+            std::deque<int>::iterator limit = main_chain.end();
+            if (partner_main != -1) {
+                limit = std::find(main_chain.begin(), main_chain.end(), partner_main);
+            }
+            std::deque<int>::iterator pos = std::upper_bound(main_chain.begin(), limit, target_pend);
+            main_chain.insert(pos, target_pend);
+
             if (index == inserted_count) break;
             index--;
         }
@@ -176,7 +197,6 @@ void PmergeMe::sortDeque(std::deque<int>& arr) {
     arr = main_chain;
 }
 
-// ---------------- ANA ÇALIŞTIRMA VE ZAMAN ÖLÇÜMÜ ----------------
 void PmergeMe::parseAndExecute(int argc, char** argv) {
     for (int i = 1; i < argc; ++i) {
         std::string arg = argv[i];
@@ -203,14 +223,12 @@ void PmergeMe::parseAndExecute(int argc, char** argv) {
     }
     std::cout << std::endl;
 
-    // Vector süresini ölç ve sırala
     struct timeval start, end;
     gettimeofday(&start, NULL);
     sortVector(_vector);
     gettimeofday(&end, NULL);
     double vec_time = (end.tv_sec - start.tv_sec) * 1000000.0 + (end.tv_usec - start.tv_usec);
 
-    // Deque süresini ölç ve sırala
     gettimeofday(&start, NULL);
     sortDeque(_deque);
     gettimeofday(&end, NULL);
